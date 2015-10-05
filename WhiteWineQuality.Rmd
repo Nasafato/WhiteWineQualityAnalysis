@@ -68,12 +68,23 @@ wf$quality_level <- ifelse(cond, "low",
                                   ifelse(cond3, "medium",
                                          ifelse(cond4, "medium-high", "high"))))
 
-wf$quality_level <- factor(wf$quality_level, levels=c("low", "medium-low", "medium", "medium-high", "high"))
+wf$quality_level <- factor(wf$quality_level, levels=c("low", 
+                                                      "medium-low", 
+                                                      "medium", 
+                                                      "medium-high", 
+                                                      "high"))
 rm(cond)
 rm(cond2)
 rm(cond3)
 rm(cond4)
+
+ggplot(data = wf, aes(x = quality_level)) +
+  geom_bar(aes(fill = quality_level)) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
 ```
+
+This distribution is somewhat normal, though there are several hundred more medium-low wines than medium-high wines. Still, I think this will serve as a suitable replacement for quality in terms of plotting.
 
 
 # Exploration of distributions as related to quality
@@ -84,172 +95,270 @@ down deeper to see which combinations of factors affect quality.
 
 ### pH
 ```{r echo=FALSE, pH}
-ggplot(data = wf, aes(x = pH)) +
-  geom_histogram(binwidth = .025, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$pH)
 
 ggplot(data = wf, aes(x = pH)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = .05, drop = TRUE) +
-  scale_y_log10()
+  geom_histogram(binwidth = .04)
+
+ggplot(data = wf, aes(x = quality_level, y = pH)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$pH, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$pH, wf$quality)
 ```
 
-I had expected there to be some distinctive distribtuions of overall pH levels based on quality of wine, but it seems that pH is pretty evenly distributed across all five quality levels. The majority of wines seem to be distributed around a pH of 3.0 to 3.3. Of course, overall, wines are quite acidic.
+pH is very normally distributed, with no outliers. This makes sense - a wine would have to be orders of magnitude more basic or more acidic to be an outlier in pH, which would probably mean it probably not be suitable for consumption. The mean pH is around 3.2, and most wines don't vary too much from this. 
+
+I expected distinctive distribtuions of overall pH levels based on quality of wine, and the boxplot confirms my expectations. There seems to be a general rise in pH as quality increases, with the mean for low quality wines being below 3.2 and the mean for high quality wines being above 3.2. This means that more acidic wines tend to be rated lower. Whether this occurs as a side effect of the wine making process for making higher quality wines or because more basic wines just taste better is something that would require investigation into the wine making process to understand.
+
+We see a correlation of 0.099 between pH and quality, which is not very strong. Many different kinds of acid contribute to pH, however, so examining each of the acidities individually should show us more about the nuances in terms of their relationships with quality.
 
 ### Fixed Acidity
 ```{r echo=FALSE, Fixed_Acidity}
+summary(wf$fixed.acidity)
 
 ggplot(data = wf, aes(x = fixed.acidity)) +
-  geom_histogram(binwidth = .1, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+  geom_histogram(binwidth = .2)
 
-ggplot(data = wf, aes(x = fixed.acidity)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = .5, drop = TRUE) +
-  scale_y_log10()
+ggplot(data = wf, aes(x = quality_level, y = fixed.acidity)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$fixed.acidity, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$fixed.acidity, wf$quality)
 ```
 
-As you can see, there seems to be no discernible difference in the distribution 
-for fixed acidity. We'll see if this is the case for the rest of the features.
+Fixed acidity seems to be normally distributed, centered around a mean of 6.855. There are some outliers on the higher end that are way beyond the 75th percentile, with fixed acidities of 12 or higher.
+
+I would expect fixed acidity's boxplot distribution to be similar to pH's, but there is no pronounced drop in fixed acidity like I thought there would be, though it does seem like there are less wines with high fixed acidities as quality increases (the top whisker of the boxes shrinks as quality increases).
+
+The correlation between fixed acidity and quality is -0.11, which is somewhat strong and confirms what we see in the boxplot.
 
 ### Volatile Acidity
 ```{r echo=FALSE, Volatile_Acidity}
-ggplot(data = wf, aes(x = volatile.acidity)) +
-  geom_histogram(binwidth = .01, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$volatile.acidity)
 
 ggplot(data = wf, aes(x = volatile.acidity)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = .05, drop = TRUE) +
-  scale_y_log10()
+  geom_histogram(binwidth = .03)
 
+ggplot(data = wf, aes(x = quality_level, y = volatile.acidity)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$volatile.acidity, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$volatile.acidity, wf$quality)
 ```
 
-Just from the distributions, I cannot really tell if there are obvious differences in terms of the values for each quality level. From the readme on the data, I would expect high quality wines to not be concentrated at very high levels of volatile acidity. That could possibly be the case, but I want to plot this relationship in more detail to get a better sense. Most wines seem to have around 0.3 grams per liter of acetic acid.
+Volatile acid's distribution is centered on its mean of around 0.28, though it is skewed to the right. There are some wines with much higher relative volatile acidity, though they are very few in number.
+
+In the boxplots, we see a marked drop in the distribution of volatile acidity as quality increases from low to medium, and then a sort of plateau from medium to high. The drop in volatile acidity is expected, though I am not sure why it plateaus at medium quality. Perhaps past that point, volatile acidity stops affecting the taste, but too much of it has a negative effect on taste.
+
+The correlation between quality and volatile acidity is -0.19, which is quite strong and confirms what we see in our boxplots. Increased volatile acidity decreases wine quality, overall.
 
 ### Citric Acid
 ```{r echo=FALSE, Citric_Acid}
-ggplot(data = wf, aes(x = citric.acid)) +
-  geom_histogram(binwidth = .025, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$citric.acid)
 
 ggplot(data = wf, aes(x = citric.acid)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = .1, drop = TRUE) +
-  scale_y_log10()
+  geom_histogram(binwidth = .04)
 
+ggplot(data = wf, aes(x = quality_level, y = citric.acid)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$citric.acid, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$citric.acid, wf$quality)
 ```
 
-The distributions look similar, so I cannot glean any insights at the moment. I would expect extremes of citric aciditiy to be inversely correlated with the quality of the wines (too sour, not sour enough), but I am not a wine afficianado. I will have to plot a more detailed graph to see whether or not that is true. The mean amount of citric acid and acetic acid seem to be similar - around 0.3 grams per liter.
+Citric acid is distributed pretty normally around its mean of 0.33, but it has some outliers on the right side, with some wines having over 1.5 g/L of citric acid.
+
+I would expect extremes of citric aciditiy to be inversely correlated with the quality of the wines (too sour, not sour enough), but I am not a wine afficianado. The boxplot seems to confirm this - the distribution of citric acid becomes markedly more concentrated around what seems to be the overall mean (it does not shift much throughout all the boxplots). This is probably the optimal citric acid level for a wine.
+
+The correlation between citric acid and quality is only -0.0092, though this is not a big deal. What we see is a gradual increase in the concentration of values as quality increases, rather than a change in the actual values, so the correlation test would not be expected to show this trend.
 
 ### Residual Sugar
 ```{r echo=FALSE, Residual_Sugar}
-ggplot(data = wf, aes(x = residual.sugar)) +
-  geom_histogram(binwidth = .5, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10() +
-  scale_x_continuous(limits = c(0, 25))
+summary(wf$residual.sugar)
 
-ggplot(data = wf, aes(x = residual.sugar)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = 1.5, drop = TRUE) +
-  scale_y_log10()
+p1 <- ggplot(data = wf, aes(x = residual.sugar)) +
+  geom_histogram(binwidth = .5)
+p1
+p1 + scale_x_continuous(limits = quantile(wf$residual.sugar, c(0.01, 0.99)))
 
+ggplot(data = wf, aes(x = quality_level, y = residual.sugar)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$residual.sugar, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+summary(with(wf, subset(residual.sugar, quality_level == 'low')))
+summary(with(wf, subset(residual.sugar, quality_level == 'high')))
+cor.test(wf$residual.sugar, wf$quality)
 ```
 
-I would have expected sugar levels to have some sort of distinctive distribution based on wine quality, but that does not seem to be the case. This could imply that there are high quality wines at every level of sugar content, as the distributions at each quality level are pretty even from around 1 g/L to 20 g/L, though the high quality wines have no counts at sugar levels above 15 g/L.
+Sugar is distributed somewhat evenly, though it spikes in count towards its very lower end. Most wines have very little sugar. There are some outliers with over 20 g/L of sugar, which is why I plot another histogram that removes the most egregious outliers.
+
+I would have expected sugar levels to have some sort of distinctive distribution based on wine quality, but the boxplot is quite strange. Both high and low quality wines tend to have very lower sugar, but medium-low shows a sudden jump in mean sugar level, which decreases as quality increases until we reach a mean of around 5.6 g/L for high quality wines. The median is 4.3 g/L, though, which suggests that some outliers heavily skew the average - this is the case for low quality wines as well, as well as for all wines, so it is probably the case that every quality has some wines that have a lot of sugar relative to other wines.
+
+Perhaps low sugar is desirable, but a combination of other factors makes some wines with low sugar content low quality. Perhaps the wine making process naturally creates less sugar as quality increases - maybe because fermentation uses up more and more sugar. The correlation between sugar and quality is -0.097, which confirms what we see in the boxplot.
 
 ### Chlorides
 ```{r echo=FALSE, Chlorides}
-c <- ggplot(data = wf, aes(x = chlorides))
-c + geom_histogram(binwidth = .0025, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$chlorides)
 
-c + geom_freqpoly(aes(color = quality_level), binwidth = .01, drop = TRUE) +
-  scale_y_log10()
+ggplot(data = wf, aes(x = chlorides)) +
+  geom_histogram(binwidth = .005)
 
+ggplot(data = wf, aes(x = chlorides)) +
+  geom_histogram(binwidth = .001) +
+  scale_x_continuous(limits = quantile(wf$chlorides, c(0.05, 0.95)))
+
+ggplot(data = wf, aes(x = quality_level, y = chlorides)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$chlorides, c(0.05, 0.95))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$chlorides, wf$quality)
 ```
 
-Based on the histogram plots, it would seem that higher quality wines tend to be distributed more closely around lower chloride levels. We will look into this later in bivariate and multivariate analysis. This shows that salt levels may have some relation with wine quality  - saltier wines may tend to be of lower quality, for whatever reason. The differences in chloride levels are small, but we know from experience that small changes in the amount of salt of a food can have a disproportionate impact on the taste of the food. Wines should be no different.
+Salt content is also distributed pretty closely around its median of 0.043. There are some outliers to the right - removing them and replotting shows us a more precise picture of the distribution. It seems that the distribution is slightly skewed to the right - there are relatively more wines with lower salt contents than there are wines with higher salt contents.
+
+The boxplots show a marked decrease in salt content as quality increases. Clearly, having less salt is better for taste. We know from experience that small additions of salt to a dish can have very large effects on the overal taste, and wine should be no different. The correlation between salt content and quality is -0.21, which is pretty strong.
 
 ### Free Sulfur Dioxide
 ```{r echo=FALSE, Free_Sulfur_Dioxide}
-ggplot(data = wf, aes(x = free.sulfur.dioxide)) +
-  geom_histogram(binwidth = 2, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10() +
-  scale_x_continuous(breaks = seq(0, 120, 20), limits = c(0, 120))
+summary(wf$free.sulfur.dioxide)
 
-ggplot(data = wf, aes(x = free.sulfur.dioxide)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = 5, drop = TRUE) +
-  scale_y_log10()
+p1 <- ggplot(data = wf, aes(x = free.sulfur.dioxide)) +
+  geom_histogram(binwidth = 2)
+p1
+p1 + scale_x_continuous(limits = quantile(wf$free.sulfur.dioxide, 
+                                          c(0.01, 0.99)))
 
+ggplot(data = wf, aes(x = quality_level, y = free.sulfur.dioxide)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$free.sulfur.dioxide, 
+                                       c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$free.sulfur.dioxide, wf$quality)
 ```
 
-The thing with sulfur dioxide is that it seems like too much of it will negatively affect the odor of the wine, and thus the quality, but too little of it means the wine has trouble keeping fresh for longer periods of time. The question is whether that actually matters in this dataset, since we have no information on when these wines were produced. otherwise, the distribution seems relatively innocuous - most wines have around 25 to 45 mg/L of free sulfur dioxide.
+Free sulfur dioxide has a mean of 35.31 and a median of 34.00. We can tell from the difference in median and mean that there will be outliers, and the histogram confirms this. Some wines have very high sulfur dioxide levels, though they are few. Removing them shows a normal distribution that is slightly skewed to the right.
+
+The thing with sulfur dioxide is that it seems like too much of it will negatively affect the odor of the wine, and thus the quality, but too little of it means the wine has trouble keeping fresh for longer periods of time. The question is whether that actually matters in this dataset, since we have no information on when these wines were produced and thus on the freshness. However, the boxplot shows that low quality wines have very low levels of sulfur dioxide (so perhaps they do not taste as fresh), and as quality increases, the range of free sulfur dioxide levels shrinks, which lends evidence to my initial intuitions. High quality wines must have a relatively small range of possible free sulfur dioxide levels.
+
+The correlation between free sulfur dioxide and quality is very low, however - only 0.0082. Still, the boxplot seems to show that it is related in some way to quality, so we will investigate further.
 
 ### Total Sulfur Dioxide
 ```{r echo=FALSE, Total_Sulfur_Dioxide}
-ggplot(data = wf, aes(x = total.sulfur.dioxide)) +
-  geom_histogram(binwidth = 2, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$total.sulfur.dioxide)
 
-ggplot(data = wf, aes(x = total.sulfur.dioxide)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = 10, drop = TRUE) +
-  scale_y_log10()
+p1 <- ggplot(data = wf, aes(x = total.sulfur.dioxide)) +
+  geom_histogram(binwidth = 5)
+p1
+p1 + scale_x_continuous(limits = quantile(wf$total.sulfur.dioxide, 
+                                          c(0.01, 0.99)))
 
+ggplot(data = wf, aes(x = quality_level, y = total.sulfur.dioxide)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$total.sulfur.dioxide, 
+                                       c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$total.sulfur.dioxide, wf$quality)
 ```
 
-### Density
-```{r echo=FALSE, Density}
-ggplot(data = wf, aes(x = density)) +
-  geom_histogram(binwidth = .0005, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+Total sulfur dioxide is very normally distributed around its mean of 138.4, with a smattering of outliers on the right. Removing them just shows us an incredibly normal distribution of values. 
 
-ggplot(data = wf, aes(x = density)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = .001, drop = TRUE) +
-  scale_y_log10()
-
-```
-
-Here, in the histogram, it seems that the distribution of density for higher quality wines is more concenrated at the lower end of the range of densities. We will investigate this further.
+There does not seem to be a pattern in the boxplots. Low quality wines have similar average levels of total sulfur dioxide as high quality wines do, though there is a jump movin from low to medium-low that then steadily decreases until medium-high. Perhaps high quality wine requires low total levels of sulfur dioxide so that taste of the actual wine is not affected, but requires higher levels of gaseous sulfur dioxide for some "zest" in the aroma of the wine. We already know that low quality wines have much lower levels of free sulfur dioxide, so this is a possible explanation. Overall, though, the correlation between quality and total sulfur dioxide is -0.17.
 
 ### Sulphates
 ```{r echo=FALSE, Sulphates}
-ggplot(data = wf, aes(x = sulphates)) +
-  geom_histogram(binwidth = .025, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$sulphates)
 
 ggplot(data = wf, aes(x = sulphates)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = .1, drop = TRUE) +
-  scale_y_log10()
+  geom_histogram(binwidth = .03)
 
+ggplot(data = wf, aes(x = quality_level, y = sulphates)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$sulphates, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$sulphates, wf$quality)
 ```
+
+Sulphate level is skewed to the right, though centered around its mean of 0.4898. 
+
+The boxplot does not really tell us anything. The distribution seems to stay roughly similar throughout all quality levels. The very low correlation of 0.054 seems to confirm that we will need to investigate the relation between sulphate level and other features to glean further insights.
+
+### Density
+```{r echo=FALSE, Density}
+summary(wf$density)
+
+ggplot(data = wf, aes(x = density)) +
+  geom_histogram(binwidth = .0015)
+
+ggplot(data = wf, aes(x = density)) +
+  geom_histogram(binwidth = .0008) + 
+  scale_x_continuous(limits = quantile(wf$density, c(0.01, 0.99)))
+
+ggplot(data = wf, aes(x = quality_level, y = density)) +
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$density, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
+
+cor.test(wf$density, wf$quality)
+```
+
+Density is pretty normally distributed around its mean of 0.9940, with a couple of outliers on the higher end. This is very close to 1, which is what we would expect due to wine being composed mostly of water. The mean being slightly lower than water is expected due to alcohol being less dense than water. However, there are some outliers that are actually much denser than water, which is probably due to them having very high levels of sugar and/or other solubles. 
+
+I do not think density itself is a factor in wine quality - it is probably highly correlated with other features such as salt content, alcohol content, and sugar, and thus any relation we see between density and quality is probably due to those other factors rather than density itself. Thus, the high correlation of -0.307 we see between density and quality is something we should take with a grain of salt.
+
+The boxplot shows a general decrease in density as wine quality goes up. Perhaps higher quality wines have higher alcohol contents. This offers the perfect segue to our last feature examination, which is of alcohol. 
 
 ### Alcohol
 ```{r echo=FALSE, Alcohol}
-ggplot(data = wf, aes(x = alcohol)) +
-  geom_histogram(binwidth = .1, drop = TRUE) +
-  facet_wrap(~quality_level, ncol = 1) +
-  scale_y_log10()
+summary(wf$alcohol)
 
 ggplot(data = wf, aes(x = alcohol)) +
-  geom_freqpoly(aes(color = quality_level), binwidth = 1, drop = TRUE) +
-  scale_y_log10()
+  geom_histogram(binwidth = .2)
 
 ggplot(data = wf, aes(x = quality_level, y = alcohol)) +
-  geom_boxplot()
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$alcohol, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
 
+summary(with(wf, subset(alcohol, quality_level == 'high')))
+summary(with(wf, subset(alcohol, quality_level == 'low')))
+cor.test(wf$alcohol, wf$quality)
 ```
 
-Higher quality wines seem to be distributed more closely to the higher end of the range of alcohol content levels.
+Alcohol's distribution is slightly skewed to the right - most wines have lower rather than higher alcohol contents. The overall mean is 10.51% alcohol.
+
+The boxplots for alcohol are what is most interesting - they show, by far, the clearest trend of a feature in relation to quality. The higher than quality, the higher than alcohol content. In fact, the IQR of low and medium-low have no overlap at all with that of high quality wine. This also is a possible explanatory factor in why lower density is correlated with higher wine quality. The correlation between quality and alcohol is 0.44, the highest we have seen thus far.
 
 ### Summary of initial findings
-As of right now, alcohol content seems to be the only feature that clearly has a correlation with wine quality. The histogram and the frequency polygon graphs both show that "low" and "medium-low" quality wines tend to have lower alcohol contents than do the "high" and "medium-high" quality wines.
-Additionally, chloride levels and density seem to show promise. I hope that the relationship will become clearer once I plot some multivariable graphs.
+As of right now, alcohol content seems to be the most strongly correlated with wine quality. Just as a recap, here are the features with relatively strong correlations with quality:
+  * alcohol - correlation = 0.44
+  * density - correlation = -0.31
+  * chlorides - correlation = -0.21
+  * volatile.acidity - correlation = -0.19
+  * total sulfur dioxide - correlation = -0.17
+  * fixed.acidity - correlation = -0.11
+  
+Citric acid seems to drill in on a certain "sweet spot" value as quality increases - the IQR of its distribution shrinks as quality increases.
 
 # Deeper Exploration - Investigating Correlations Between Features
 
@@ -271,93 +380,72 @@ wf.group_by_quality <- wf %>%
             median_free_so2 = median(free.sulfur.dioxide),
             median_sulphates = median(sulphates)) %>%
   arrange(quality_level)
+
+wf.group_by_quality
 ```
 
-Here, I try to perform some aggregations on sugar, pH, alcohol, and acidity to see if anything pops out. I will now make a few graphs. And just to note, I make a new feature called 'total.acidity' which is just the sum of fixed acidity, volatile acidity, and citric acid.
+Here, I have done some aggregations on the various features. I have also created a new variable called total acidity, which is the sum of citric, fixed, and volatile acidity.
 
 ### Investigating Acidity
 ```{r echo=FALSE}
-p1 <- ggplot(data = wf.group_by_quality, aes(x = quality_level, y = median_fixed_acidity, group=1)) +
-  geom_point() +
-  stat_smooth(method=lm)
-
-p2 <- ggplot(data = wf.group_by_quality, aes(x = quality_level, y = median_volatile_acidity, group=1)) +
-  geom_point() +
-  stat_smooth(method='lm')
-
-p3 <- ggplot(data = wf.group_by_quality, aes(x = quality_level, y = median_citric_acid, group=1)) +
-  geom_point() +
-  stat_smooth(method='lm')
-
-p4 <- ggplot(data = wf.group_by_quality, aes(x = quality_level, y = median_total_acidity, group=1)) +
-  geom_point() +
-  stat_smooth(method='lm')
-
-p5 <- ggplot(data = wf.group_by_quality, aes(x = quality_level, y = median_ph, group=1)) +
-  geom_point() +
-  stat_smooth(method='lm')
-
-grid.arrange(p1, p2, p3, p4, p5, ncol = 2)
-```
-
-I really wish the data for quality was more continuous - on a range of 1 to 10 based on an average of all the judges' scores for that particular wine. But alas, the data gods are not so kind. 
-Judging from the fitted lines, it would seem that, generally, higher quality wines have less fixed and volatile acidity than lower quality wines, while higher quality wines tend to have more citric acid than lower quality wines.
-In terms of general acidity, higher quality wines tend to have higher pH values, which makes sense. This means higher quality wines are more basic, i.e. less acidic, and this is obviously in line with the general trend that total acidity goes down as wine quality goes up.
-Still, these lines are not very strong fits - for volatile acidity, it seems tht a parabolic curve would be a better fit.
-
-```{r echo=FALSE}
-p1 <- ggplot(data = wf, aes(x = quality_level, y = total.acidity, group = 1)) +
-  geom_jitter(alpha = 2/5) +
-  stat_smooth(method = lm) +
-  scale_y_continuous(limits = quantile(wf$fixed.acidity, c(.05, .95)), breaks = seq(5.5, 8.5, .25))
-
-p2 <- ggplot(data = wf, aes(x = quality, y = pH, group = 1)) +
-  geom_jitter(alpha = 2/5) +
-  stat_smooth(method = lm) +
-  scale_y_continuous(limits = quantile(wf$pH, c(.05, .95)))
-
-grid.arrange(p1, p2, ncol = 1)
-```
-
-These graphs show that the correlation between acidity and pH is slightly less strong, but it still exists. Higher wine quality seems to predict lower acidity.
-
-### Investigating alcohol content
-```{r echo=FALSE}
-p1 <- ggplot(data = wf.group_by_quality, aes(x = quality_level, y = median_alcohol, group=1)) + 
-  geom_smooth(method='lm', formula=y~x) + 
-  geom_point()
-
-p2 <- ggplot(data = wf, aes(x = alcohol, y = quality)) +
+ggplot(data = wf, aes(x = fixed.acidity, y = volatile.acidity)) +
   geom_jitter(aes(color = quality_level), alpha = 3/5) +
-  geom_line(stat = "summary", fun.y = mean) +
-  geom_smooth(method='lm', formula=y~x)
+  scale_color_brewer(type = 'div') +
+  stat_smooth(method = lm) +
+  scale_y_continuous(limits = quantile(wf$volatile.acidity, c(0.01, 0.99))) +
+  scale_x_continuous(limits = quantile(wf$fixed.acidity, c(0.01, 0.99)))
 
-p3 <- ggplot(data = wf, aes(y = alcohol, x = quality)) +
+cor.test(wf$fixed.acidity, wf$volatile.acidity)
+
+ggplot(data = wf, aes(x = citric.acid, y = fixed.acidity)) +
   geom_jitter(aes(color = quality_level), alpha = 3/5) +
-  geom_line(stat = "summary", fun.y = mean) +
-  geom_smooth(method='lm', formula=y~x)
+  scale_color_brewer(type = 'div') +
+  stat_smooth(method = lm) +
+  scale_y_continuous(limits = quantile(wf$fixed.acidity, c(0.01, 0.99))) +
+  scale_x_continuous(limits = quantile(wf$citric.acid, c(0.01, 0.99)))
 
-grid.arrange(p1, p2, p3, ncol = 1)
+ggplot(data = wf, aes(x = citric.acid, y = volatile.acidity)) +
+  geom_jitter(aes(color = quality_level), alpha = 3/5) +
+  scale_color_brewer(type = 'div') +
+  stat_smooth(method = lm) +
+  scale_y_continuous(limits = quantile(wf$volatile.acidity, c(0.01, 0.99))) +
+  scale_x_continuous(limits = quantile(wf$citric.acid, c(0.01, 0.99)))
+
+cor.test(wf$citric.acid, wf$fixed.acidity)
+cor.test(wf$citric.acid, wf$volatile.acidity)
+
+ggplot(data = wf, aes(x = total.acidity, y = pH)) +
+  geom_jitter(aes(color = quality_level), alpha = 3/5) +
+  scale_color_brewer(type = 'div') +
+  scale_x_continuous(limits = quantile(wf$total.acidity, c(0.01, 0.99))) +
+  scale_y_continuous(limits = quantile(wf$pH, c(0.01, 0.99))) +
+  stat_smooth(method = lm)
+
+cor.test(wf$total.acidity, wf$pH)
 ```
 
-Alcohol content and wine quality are pretty closely correlated. We can use this in our model. 
+The correlation between fixed and volatile acidity is pretty small, but there is a correlation between citric acid and fixed acidity of 0.29. This is positive, unlike the correlation between citric acid and volatile acidity of -0.15. I am not sure why that is, but it seems interesting that more citric acid increases fixed acidity but decreases volatile acidity.
+
+As expected, total acidity is negatively correlated with pH - more acids (obviously) mean lower pH.
+
+### Sugar, Alcohol, and Quality
 
 ```{r echo=FALSE}
-p1 <- ggplot(data = wf, aes(x = residual.sugar, y = quality)) +
-  geom_jitter(alpha = 2/5) +
-  scale_x_continuous(limits = quantile(wf$residual.sugar, c(0.01, 0.99))) +
-  geom_smooth(method=lm, formula=y~x)
-
-p2 <- ggplot(data = wf, aes(x = alcohol, y = residual.sugar)) +
+p1 <- ggplot(data = wf, aes(x = alcohol, y = residual.sugar)) +
   geom_jitter(aes(color = quality_level), alpha = 4/5) +
   scale_y_continuous(limits = quantile(wf$residual.sugar, c(0.01, 0.99))) +
   geom_smooth(method='lm', formula=y~x) +
   scale_color_brewer(type = 'div')
+p1
 
-grid.arrange(p1, p2, ncol = 2)
+cor.test(wf$alcohol, wf$residual.sugar)
 ```
 
 What seems interesting here is that while plotting sugar on its own against quality does not show much of a correlation, plotting residual sugar against alcohol and then coloring by quality seems to show that higher quality wines, which tend to have higher alcohol contents, also tend to have lower sugar levels than wines with lower alcohol contents. It is clear that plotting sugar with alcohol content strengthened both features.
+
+The correlation between alcohol and sugar is -0.45, which is very strong. As alcohol increases, sugar levels tend to decrease, which confirms what we see in our plot. Perhaps this is a result of wine-creating bacteria consuming more sugar to produce more ethanol.
+
+### Sugar, Alcohol, Chlorides, and Density
 
 ```{r echo=FALSE}
 p1 <- ggplot(data = wf, aes(x = alcohol, y = density)) +
@@ -373,33 +461,33 @@ p2 <- ggplot(data = wf, aes(x = residual.sugar, y = density)) +
   geom_smooth(method='lm', formula=y~x) +
   scale_color_brewer(type = 'div')
 
-grid.arrange(p1, p2, ncol = 2)
+p3 <- ggplot(data = wf, aes(x = chlorides, y = density)) +
+  geom_jitter(aes(color = quality_level), alpha = 4/5) +
+  scale_y_continuous(limits = quantile(wf$density, c(0.01, 0.99))) +
+  scale_x_continuous(limits = quantile(wf$chlorides, c(0.05, 0.95))) +
+  geom_smooth(method='lm', formula=y~x) +
+  scale_color_brewer(type = 'div')
+
+p1
+cor.test(wf$residual.sugar, wf$density)
+p2
+cor.test(wf$alcohol, wf$density)
+p3
+cor.test(wf$chlorides, wf$density)
 ```
 
-As expected, both alcohol content and residual sugar are highly correlated with density. If we were to create a linear regression model for quality, we should avoid having all three of these variables in the model, as multicollinearity would become a significant problem.
+As expected, both alcohol content and residual sugar are highly correlated with density. If we were to create a linear regression model for quality, we should avoid having all three of these variables in the model, as multicollinearity would become a significant problem. Salt content is also correlated with density, though to a lesser extent than the other two features. 
 
 ### Investigating salt content
 ```{r echo=FALSE}
-p1 <- ggplot(data = wf.group_by_quality, aes(x = median_chlorides, y = quality_level, group = 1)) +
-  geom_jitter() +
-  geom_smooth(method = lm)
-p1
-```
-
-Immediately we see that there is a strong likelihood that salt content is correlated with  quality. We will further investigate.
-
-```{r echo=FALSE}
-p1 <- ggplot(data = wf, aes(x = chlorides, y = quality)) +
-  geom_jitter(alpha = 3/5) +
-  geom_smooth(method='lm', formula=y~x) +
-  scale_x_continuous(limits = quantile(wf$chlorides, c(0.05, 0.95)))
-
 p2 <- ggplot(data = wf, aes(x = chlorides, y = residual.sugar)) +
   geom_jitter(aes(color = quality_level), alpha = 3/5) +
   geom_smooth(method='lm', formula=y~x) +
   scale_x_continuous(limits = quantile(wf$chlorides, c(0.05, 0.95))) +
   scale_y_continuous(limits = quantile(wf$residual.sugar, c(0.05, 0.95))) +
   scale_color_brewer(type = 'div')
+p2
+cor.test(wf$chlorides, wf$residual.sugar)
 
 p3 <- ggplot(data = wf, aes(x = chlorides, y = alcohol)) +
   geom_jitter(aes(color = quality_level), alpha = 3/5) +
@@ -408,73 +496,60 @@ p3 <- ggplot(data = wf, aes(x = chlorides, y = alcohol)) +
   scale_y_continuous(limits = quantile(wf$alcohol, c(0.01, 0.99))) +
   scale_color_brewer(type = 'div') +
   guides(color = FALSE)
-
-p4 <- ggplot(data = wf, aes(x = chlorides, y = density)) +
-  geom_jitter(aes(color = quality_level), alpha = 3/5) +
-  geom_smooth(method='lm', formula=y~x) +
-  scale_x_continuous(limits = quantile(wf$chlorides, c(0.01, 0.95))) +
-  scale_y_continuous(limits = quantile(wf$density, c(0.01, 0.99))) +
-  scale_color_brewer(type = 'div')
-
-grid.arrange(p1, p2, p3, p4, ncol = 2)
+p3
+cor.test(wf$chlorides, wf$alcohol)
 ```
 
-These plots confirm that lower salt content is correlated with higher wine quality. What is interesting is the inverse correlation between alcohol and chlorides, which I would not have expected. It seems that there are no wines with low alcohol content and low chloride levels and no wines with high alcohol content and high chloride levels. I am not sure why that is - perhaps it is a side effect of making wine with high alcohol content, or that high quality wines are produced with the goal of high alcohol content and low salt content in mind. Regardless, they are correlated, so we should bear that in mind while constructing a model so as to keep multicollinearity at a minimum.
+What is interesting is the inverse correlation between alcohol and chlorides, which I would not have expected. It seems that there are no wines with low alcohol content and low chloride levels and no wines with high alcohol content and high chloride levels. I am not sure why that is - perhaps it is a side effect of making wine with high alcohol content, or that high quality wines are produced with the goal of high alcohol content and low salt content in mind. Regardless, they are correlated, so we should bear that in mind while constructing a model so as to keep multicollinearity at a minimum.
 
 ### Investigating sulfate levels
 ```{r echo=FALSE}
-p1 <- ggplot(data = wf.group_by_quality, aes(y = median_sulphates, x = quality_level, group=1)) +
-  geom_point() +
-  geom_smooth(method = lm)
-
-p2 <- ggplot(data = wf.group_by_quality, aes(y = median_total_so2, x = quality_level, group=1)) +
-  geom_point() +
-  geom_smooth(method = lm)
-
-p3 <- ggplot(data = wf.group_by_quality, aes(y = median_free_so2, x = quality_level, group=1)) +
-  geom_point() +
-  geom_smooth(method = lm)
-
-grid.arrange(p1, p2, p3, ncol = 1)
-```
-
-These do not tell us all that much. Let us investigate further. We will move directly into plotting these features against other possible explanatory features to see if any unexpected results show up.
-
-```{r echo=FALSE}
 p1 <- ggplot(data = wf, aes(x = total.sulfur.dioxide, y = sulphates)) +
   geom_point(aes(color = quality_level), alpha = 3/5) +
-  scale_x_continuous(limits = quantile(wf$total.sulfur.dioxide, c(0.01, 0.99))) +
+  scale_x_continuous(limits = quantile(wf$total.sulfur.dioxide, 
+                                       c(0.01, 0.99))) +
   scale_y_continuous(limits = quantile(wf$sulphates, c(0.01, 0.99))) +
   scale_color_brewer(type = 'div') +
   geom_smooth(method = lm)
 
-p2 <- ggplot(data = wf, aes(x = total.sulfur.dioxide, y = free.sulfur.dioxide)) +
+p2 <- ggplot(data = wf, 
+             aes(x = total.sulfur.dioxide, y = free.sulfur.dioxide) ) +
   geom_point(aes(color = quality_level), alpha = 3/5) +
-  scale_x_continuous(limits = quantile(wf$total.sulfur.dioxide, c(0.01, 0.99))) +
-  scale_y_continuous(limits = quantile(wf$free.sulfur.dioxide, c(0.01, 0.99))) +
+  scale_x_continuous(limits = quantile(wf$total.sulfur.dioxide, 
+                                       c(0.01, 0.99))) +
+  scale_y_continuous(limits = quantile(wf$free.sulfur.dioxide, 
+                                       c(0.01, 0.99))) +
   scale_color_brewer(type = 'div') +
   geom_smooth(method = lm)
 
-grid.arrange(p1, p2, ncol = 1)
+p1
+cor.test(wf$sulphates, wf$total.sulfur.dioxide)
+cor.test(wf$sulphates, wf$free.sulfur.dioxide)
+p2
+cor.test(wf$free.sulfur.dioxide, wf$total.sulfur.dioxide)
+
+
+
 ```
 
-It becomes clearer here that lower total sulfur dioxide seems to be correlated with higher wine quality. And, as expected, free sulfur dioxide and total sulfur dioxide are correlated with each other.
+The level of sulphates in a wine does not seem to be very closely related to the amount of sulfur dioxide both in gaseous and dissolved form, though this is expected because the readme for the dataset says that sulphate level contributes only a small amount to sulfur dioxide. 
+
+As expected, total sulfur dioxide and free sulfur dioxide are pretty strongly correlated.
 
 ## Summary of findings so far
 First, let us talk about the features other than the feature of interest that are correlated with each other. Some were obvious and expected, others are not:
-- alcohol and density
-- sugar and density
-- chlorides and alcohol
-- total sulfur dioxide and free sulfur dioxide
-- all the various acidities with pH
+  - alcohol and density
+  - sugar and density
+  - chlorides and alcohol
+  - total sulfur dioxide and free sulfur dioxide
+  - all the various acidities with pH
 
 Now, let us list how these features relate to quality:
-- higher alcohol and higher quality
-- higher citric acid and higher quality
-- lower sugar and higher quality
-- lower total sulfur dioxide and higher quality
-- lower pH and higher quality
-- lower salt content and higher quality
+  - higher alcohol and higher quality
+  - lower sugar and higher quality
+  - lower total sulfur dioxide and higher quality
+  - lower acidity and higher quality
+  - lower salt content and higher quality
 
 With this information, we can improve on our expectations of what makes for a high quality wine. Good wines tend to have higher alcohol contents, fruitier flavor (due to higher citric acid content), lower sugar levels, lower salt levels, lower sulfur dioxide levels, and lower overall acidity. I have left out features such as density, which is too strongly correlated with more important features such as alcohol content and chloride levels, and sulphates, which does not seem to be correlated with quality and is only very slighty correlated with total sulfur dioxide. 
 
@@ -486,16 +561,15 @@ library(GGally)
 library(scales)
 
 m1 <- lm(alcohol ~ quality, data = wf)
-m2 <- update(m1, ~ . + citric.acid)
+m2 <- update(m1, ~ . + volatile.acidity)
 m3 <- update(m2, ~ . + chlorides)
-m4 <- update(m3, ~ . + pH)
-m5 <- update(m4, ~ . + residual.sugar)
-m6 <- update(m5, ~ . + total.sulfur.dioxide)
-mtable(m1, m2, m3, m4, m5, m6)
+m4 <- update(m3, ~ . + residual.sugar)
+m5 <- update(m4, ~ . + total.sulfur.dioxide)
+mtable(m1, m2, m3, m4, m5)
 ```
 
 ## Modeling
-In the end, using just a pretty basic linear model, we get an R-squared of 0.459, which is not too shabby. Of course, this is far from a perfect model - a linear regression simply cannot capture all the subtleties of the data. I also included both chlorides and alcohol in the model, even though I already know that they are correlated with each other. Thus, there is some degree of multicollinearity that is negatively affecting the truth of the model.
+In the end, using just a pretty basic linear model, we get an R-squared of 0.496, which is not too shabby. Of course, this is far from a perfect model - a linear regression simply cannot capture all the subtleties of the data. I also included both chlorides and alcohol in the model, even though I already know that they are correlated with each other. Thus, there is some degree of multicollinearity that is negatively affecting the truth of the model.
 
 ------
 
@@ -504,9 +578,10 @@ In the end, using just a pretty basic linear model, we get an R-squared of 0.459
 ### Plot One
 ```{r echo=FALSE, Plot_One}
 ggplot(data = wf, aes(x = quality_level, y = alcohol)) +
-  geom_boxplot() +
-  labs(x = 'Quality Level', y = 'Alcohol Percentage (%)') +
-  ggtitle('Alcohol Content by Quality Level')
+  geom_boxplot(aes(fill = quality_level)) +
+  scale_y_continuous(limits = quantile(wf$alcohol, c(0.01, 0.99))) +
+  scale_fill_brewer(type = 'div') +
+  theme(legend.position = 0)
 ```
 
 ### Description One
@@ -526,7 +601,7 @@ ggplot(data = wf, aes(x = alcohol, y = residual.sugar)) +
 ### Description Two
 I selected these first two plots because they reveal quirks of the data that you wouldn't have been able to see otherwise. During my EDA, it was hard to see whether sugar content related at all to wine quality - different levels of sugar content seemed to be distributed quite evenly across all wine qualities. 
 However, this plot immediately reveals two things: (1) higher quality alcohol **does**, in fact, have lower sugar levels, and (2) there are no high alcohol and high sugar content wines. 
-The insights this plot offered me meant I now was willing to use residual sugar as a feature in the linear regression model I hoped to build, since it was clearly correlated with wine quality. And this paid off - adding residual.sugar to my linear model raised the R-squared value (unadjusted) from 0.270 to 0.419.
+The insights this plot offered me meant I now was willing to use residual sugar as a feature in the linear regression model I hoped to build, since it was clearly correlated with wine quality. And this paid off - adding residual.sugar to my linear model raised the R-squared value (unadjusted) from 0.292 to 0.453.
 
 ### Plot Three
 ```{r echo=FALSE, Plot_Three}
